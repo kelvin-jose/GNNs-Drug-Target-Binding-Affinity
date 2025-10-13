@@ -209,3 +209,5 @@ __marimo__/
 *.csv
 *.log
 */runs/*
+*tar.gz
+data/*

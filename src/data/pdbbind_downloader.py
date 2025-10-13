@@ -13,6 +13,7 @@ PDBBIND_URLS = {
 
 def download_file(url, dest_path):
     dest_path = Path(dest_path)
+    print(dest_path)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     if dest_path.exists():
         logger.info(f"File already exists -> {dest_path.name}, skipping.")
@@ -40,3 +41,24 @@ def extract_tar_gz(archive_path, extract_to):
         for member in tqdm(tar.getmembers(), total=len(tar.getmembers()), desc="Extracting"):
             tar.extract(member, path=extract_to)
     logger.info(f"Extraction complete: {extract_to}")
+
+def download_pdbbind(version="v2020", subset="refined"):
+    base_dir = Path("data/raw")
+    subset = subset.lower()
+    assert subset in ["refined"], "subset must be 'refined'"
+
+    dataset_url = PDBBIND_URLS[subset]
+    index_url = PDBBIND_URLS[f"index_{subset}"]
+
+    archive_path = base_dir / f"PDBbind_{version}_{subset}.tar.gz"
+    extract_to = base_dir / f"PDBbind_{version}_{subset}"
+
+    download_file(dataset_url, archive_path)
+    extract_tar_gz(archive_path, extract_to)
+    download_file(index_url, base_dir / f"PDBbind_{version}_{subset}_plain_text_index.tar.gz")
+
+    logger.info(f"PDBBind {version} ({subset}) setup complete.")
+    return {
+        "dataset": str(extract_to),
+        "index_file": str(base_dir / Path(index_url).name),
+    }
