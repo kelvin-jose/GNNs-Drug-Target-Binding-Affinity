@@ -1,3 +1,4 @@
+import tarfile
 import urllib.request
 from tqdm import tqdm
 from pathlib import Path
@@ -28,3 +29,14 @@ def download_file(url, dest_path):
                 pbar.update(len(chunk))
     logger.info(f"Download complete: {dest_path}")
     return dest_path
+
+def extract_tar_gz(archive_path, extract_to):
+    archive_path, extract_to = Path(archive_path), Path(extract_to)
+    if extract_to.exists():
+        logger.info(f"Extraction skipped (exists): {extract_to}")
+        return
+    logger.info(f"Extracting {archive_path.name} → {extract_to}")
+    with tarfile.open(archive_path, "r:gz") as tar:
+        for member in tqdm(tar.getmembers(), total=len(tar.getmembers()), desc="Extracting"):
+            tar.extract(member, path=extract_to)
+    logger.info(f"Extraction complete: {extract_to}")
