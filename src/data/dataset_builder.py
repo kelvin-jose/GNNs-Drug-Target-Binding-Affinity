@@ -32,3 +32,33 @@ def parse_index_file(index_path: Path):
     logger.info(f"Parsed {len(df)} entries from {index_path.name}")
     return df
 
+def build_metadata_table(refined_dir, index_df, output_csv):
+    data, missing = [], 0
+    for _, row in index_df.iterrows():
+        cid = row["complex_id"]
+        subdir = refined_dir / "refined-set"
+        ligand_file = subdir / cid/ f"{cid}_ligand.sdf"
+        protein_file = subdir / cid / f"{cid}_protein.pdb"
+        pocket_file = subdir / cid / f"{cid}_pocket.pdb"
+
+        if not ligand_file.exists() or not protein_file.exists():
+            missing += 1
+            continue
+
+        data.append({
+            "complex_id": cid,
+            "ligand_file": str(ligand_file),
+            "protein_file": str(protein_file),
+            "pocket_file": str(pocket_file) if pocket_file.exists() else None,
+            "affinity": row["affinity"],
+            "measure": row["measure"],
+            "resolution": row["resolution"],
+            "year": row["year"],
+        })
+
+    df = pd.DataFrame(data)
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_csv, index=False)
+    logger.info(f"Saved {len(df)} entries -> {output_csv}")
+    logger.info(f"Skipped {missing} complexes (missing files)")
+    return df
