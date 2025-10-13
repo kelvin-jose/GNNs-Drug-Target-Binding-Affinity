@@ -13,7 +13,6 @@ PDBBIND_URLS = {
 
 def download_file(url, dest_path):
     dest_path = Path(dest_path)
-    print(dest_path)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     if dest_path.exists():
         logger.info(f"File already exists -> {dest_path.name}, skipping.")
@@ -56,6 +55,8 @@ def download_pdbbind(version="v2020", subset="refined"):
     download_file(dataset_url, archive_path)
     extract_tar_gz(archive_path, extract_to)
     download_file(index_url, base_dir / f"PDBbind_{version}_{subset}_plain_text_index.tar.gz")
+    extract_tar_gz(base_dir / f"PDBbind_{version}_{subset}_plain_text_index.tar.gz", 
+                   base_dir / f"PDBbind_{version}_{subset}_plain_text_index")
 
     logger.info(f"PDBBind {version} ({subset}) setup complete.")
     return {
