@@ -1,27 +1,33 @@
-from torch.utils.tensorboard import SummaryWriter
 from utils.logger import setup_logging
+from data.dataset_builder import build_dataset
+from data.pdbbind_downloader import download_pdbbind
+from torch.utils.tensorboard import SummaryWriter
 
 def main():
     logger = setup_logging()
-    logger.info("Launching GNN-DTBA project...")
 
     # init TensorBoard
-    writer = SummaryWriter(log_dir="experiments/runs/train")
-    logger.info("TensorBoard writer initialized.")
+    writer = SummaryWriter(log_dir="experiments/runs/data_preparation")
+    logger.info("=== Phase 1: Data Preparation ===")
+    writer.add_text("phase", "Phase 1 - Data Preparation")
 
-    # dummy train log
-    for step in range(1000):
-        writer.add_scalar("loss/train", 1.0 / (step + 1), step)
-        logger.info(f"Step {step}: dummy train logged.")
+    # download dataset if needed
+    download_pdbbind(subset="refined")
 
-    # dummy test log
-    for step in range(50):
-        writer.add_scalar("loss/test", 1.0 / (step + 1), step)
-        logger.info(f"Step {step}: dummy loss logged.")
+    # build dataset metadata
+    df = build_dataset(index_type="refined")
+
+    if df is not None:
+        writer.add_scalar("dataset/num_entries", len(df))
+        writer.add_text("dataset/status", "Dataset successfully prepared")
+        logger.info("Phase 1 complete.")
+    else:
+        writer.add_text("dataset/status", "Dataset preparation failed")
+        logger.error("Phase 1 failed.")
+
     writer.close()
-    
-    logger.info("TensorBoard logging complete.")
-    logger.info("Phase 0 setup successful!")
+
+
 
 if __name__ == "__main__":
     main()
