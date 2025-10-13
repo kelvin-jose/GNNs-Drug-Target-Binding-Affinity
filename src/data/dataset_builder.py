@@ -62,3 +62,21 @@ def build_metadata_table(refined_dir, index_df, output_csv):
     logger.info(f"Saved {len(df)} entries -> {output_csv}")
     logger.info(f"Skipped {missing} complexes (missing files)")
     return df
+
+def build_dataset(version="v2020", index_type="refined"):
+    logger.info(f"Building PDBBind {version} ({index_type}) dataset...")
+    refined_dir = Path(f"data/raw/PDBbind_{version}_{index_type}")
+    index_file = Path(f"data/raw/PDBbind_{version}_{index_type}_plain_text_index/index/INDEX_{index_type}_data.{version.split('v')[-1]}")
+
+    if not refined_dir.exists():
+        logger.error(f"Missing directory: {refined_dir}")
+        return None
+    if not index_file.exists():
+        logger.error(f"Missing index file: {index_file}")
+        return None
+    
+    index_df = parse_index_file(index_file)
+    output_csv = Path(f"data/processed/{index_type}_dataset_metadata.csv")
+    df = build_metadata_table(refined_dir, index_df, output_csv)
+    logger.info(f"Final dataset size: {len(df)} entries.")
+    return df
