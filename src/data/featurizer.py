@@ -70,3 +70,10 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
         edges.append((j, i))
         edge_attrs.append(edge_attr)
         edge_attrs.append(edge_attr)
+    
+    if len(edges) > 0:
+        edge_index = np.array(edges, dtype=np.int64).T  # [2, E]
+        edge_attr = np.array(edge_attrs, dtype=np.float32)
+    else:
+        edge_index = np.zeros((2,0), dtype=np.int64)
+        edge_attr = np.zeros((0,5), dtype=np.float32)
