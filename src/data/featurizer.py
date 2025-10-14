@@ -51,4 +51,11 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
                             else np.zeros((0, len(COMMON_ATOMS)+5+len(HYBRIDIZATION_MAP)+1), 
                             dtype=np.float32)
 
-    
+    edges = []
+    edge_attrs = []
+    for bond in mol.GetBonds():
+        i = bond.GetBeginAtomIdx()
+        j = bond.GetEndAtomIdx()
+        bt = bond.GetBondType()
+        is_aromatic = 1 if bond.GetIsAromatic() else 0
+        
