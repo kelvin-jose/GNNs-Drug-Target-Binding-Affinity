@@ -1,3 +1,4 @@
+import torch
 import numpy as np
 from rdkit import Chem
 from rdkit.Chem import AllChem
@@ -94,3 +95,16 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
                 pos[i] = [p.x, p.y, p.z]
         except Exception:
             pass
+    
+    # numpy to tensors
+    node_feats = torch.tensor(node_feats)
+    edge_index = torch.tensor(edge_index, dtype=torch.long)
+    edge_attr = torch.tensor(edge_attr)
+    pos = torch.tensor(pos, dtype=torch.float32)
+
+    return {
+        "x": node_feats,
+        "edge_index": edge_index,
+        "edge_attr": edge_attr,
+        "pos": pos
+    }
