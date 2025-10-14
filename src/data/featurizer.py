@@ -77,3 +77,10 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
     else:
         edge_index = np.zeros((2,0), dtype=np.int64)
         edge_attr = np.zeros((0,5), dtype=np.float32)
+
+    pos = np.zeros((num_atoms, 3), dtype=np.float32)
+    if mol.GetNumConformers() > 0:
+        conf = mol.GetConformer(0)
+        for i in range(num_atoms):
+            p = conf.GetAtomPosition(i)
+            pos[i] = [p.x, p.y, p.z]
