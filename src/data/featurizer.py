@@ -59,3 +59,14 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
         bt = bond.GetBondType()
         is_aromatic = 1 if bond.GetIsAromatic() else 0
         
+        bt_oh = [
+            1 if bt == Chem.rdchem.BondType.SINGLE else 0,
+            1 if bt == Chem.rdchem.BondType.DOUBLE else 0,
+            1 if bt == Chem.rdchem.BondType.TRIPLE else 0,
+            1 if bt == Chem.rdchem.BondType.AROMATIC else 0,
+        ]
+        edge_attr = bt_oh + [is_aromatic]
+        edges.append((i, j))
+        edges.append((j, i))
+        edge_attrs.append(edge_attr)
+        edge_attrs.append(edge_attr)
