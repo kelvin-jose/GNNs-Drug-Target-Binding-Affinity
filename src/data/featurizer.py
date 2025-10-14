@@ -1,5 +1,6 @@
 import numpy as np
 from rdkit import Chem
+from rdkit.Chem import AllChem
 from utils.logger import setup_logging
 
 logger = setup_logging()
@@ -84,3 +85,12 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
         for i in range(num_atoms):
             p = conf.GetAtomPosition(i)
             pos[i] = [p.x, p.y, p.z]
+    else:
+        try:
+            AllChem.EmbedMolecule(mol, randomSeed=0xf00d)
+            conf = mol.GetConformer()
+            for i in range(num_atoms):
+                p = conf.GetAtomPosition(i)
+                pos[i] = [p.x, p.y, p.z]
+        except Exception:
+            pass
