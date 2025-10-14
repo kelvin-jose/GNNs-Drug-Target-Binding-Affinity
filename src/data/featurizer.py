@@ -33,3 +33,22 @@ def atom_to_feature_vector(atom):
     hybrid_oh = one_hot(hybrid, list(range(len(HYBRIDIZATION_MAP)+1)))  # include -1 as index 0?
     vec = atom_onehot + [degree, formal_charge, num_hs, aromatic] + hybrid_oh
     return np.array(vec, dtype=np.float32)
+
+def featurize_rdkit_mol(mol, use_explicit_hs = True):
+    if mol is None:
+        logger.error("featurize_rdkit_mol received None")
+        return None
+
+    if use_explicit_hs:
+        try:
+            mol = Chem.AddHs(mol)
+        except Exception:
+            pass
+
+    num_atoms = mol.GetNumAtoms()
+    node_feats = np.vstack([atom_to_feature_vector(a) \
+                            for a in mol.GetAtoms()]) if num_atoms > 0 \
+                            else np.zeros((0, len(COMMON_ATOMS)+5+len(HYBRIDIZATION_MAP)+1), 
+                            dtype=np.float32)
+
+    
