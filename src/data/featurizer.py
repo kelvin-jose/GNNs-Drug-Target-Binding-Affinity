@@ -97,9 +97,9 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
             pass
     
     # numpy to tensors
-    node_feats = torch.tensor(node_feats)
+    node_feats = torch.tensor(node_feats, dtype=torch.float32)
     edge_index = torch.tensor(edge_index, dtype=torch.long)
-    edge_attr = torch.tensor(edge_attr)
+    edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
     pos = torch.tensor(pos, dtype=torch.float32)
 
     return {
