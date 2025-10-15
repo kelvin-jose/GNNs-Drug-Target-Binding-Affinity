@@ -28,6 +28,14 @@ class PDBBindLigandDataset(InMemoryDataset):
             logger.info("Processing dataset (this may take a while)...")
             self.process()
             self.data, self.slices = torch.load(self.cache_file)
+
+    @property
+    def raw_file_names(self):
+        return [self.metadata_csv.name]
+
+    @property
+    def processed_file_names(self):
+        return [self.cache_file.name]
     
     def process(self):
         df = pd.read_csv(self.metadata_csv)
