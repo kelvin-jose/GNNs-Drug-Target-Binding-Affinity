@@ -87,3 +87,9 @@ class PDBBindLigandDataset(InMemoryDataset):
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.cache_file)
         logger.info(f"Saved processed dataset to {self.cache_file}")
+
+    def get(self, idx):
+        return super().get(idx)
+
+    def len(self):
+        return super().len()
