@@ -1,4 +1,6 @@
+import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch_geometric.nn import GCNConv, GraphConv, SAGEConv, global_mean_pool
 from utils.logger import setup_logging
 
@@ -24,3 +26,15 @@ class BaselineGNN(nn.Module):
             nn.ReLU(),
             nn.Linear(hidden_channels//2, 1)
         )
+    
+    def forward(self, data):
+        x, edge_index = data.x, data.edge_index
+        for conv, bn in zip(self.convs, self.bns):
+            x = conv(x, edge_index)
+            x = bn(x)
+            x = F.relu(x)
+        
+        batch = data.batch if hasattr(data, "batch") else torch.zeros(x.size(0), dtype=torch.long, device=x.device)
+        h = self.pool(x, batch)
+        out = self.head(h).squeeze(-1)
+        return out
