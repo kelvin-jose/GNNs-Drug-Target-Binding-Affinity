@@ -2,3 +2,6 @@ pyyaml
 torch
 numpy==1.23.5
 urllib3
+rdkit
+biopython
+torch_geometric
