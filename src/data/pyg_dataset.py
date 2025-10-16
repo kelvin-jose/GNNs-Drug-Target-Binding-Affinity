@@ -1,12 +1,12 @@
 import torch
-from pandas as pd
+import pandas as pd
 from rdkit import Chem
 from pathlib import Path
 from rdkit.Chem import SDMolSupplier
-from utils.logger import setup_logging
 from torch_geometric.data import InMemoryDataset, Data
 
-from data.featurizer import featurize_rdkit_mol
+from src.utils.logger import setup_logging
+from src.data.featurizer import featurize_rdkit_mol
 
 logger = setup_logging()
 
@@ -23,7 +23,8 @@ class PDBBindLigandDataset(InMemoryDataset):
 
         if self.cache_file.exists() and not self.force_rebuild:
             logger.info(f"Loading cached dataset from {self.cache_file}")
-            self.data, self.slices = torch.load(self.cache_file)
+            with torch.serialization.safe_globals([Data]):
+                self.data, self.slices = torch.load(self.cache_file, weights_only=False)
         else:
             logger.info("Processing dataset (this may take a while)...")
             self.process()
