@@ -2,9 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import SAGEConv, global_mean_pool
-from utils.logger import setup_logging
-
-from utils.logger import setup_logging
+from src.utils.logger import setup_logging
 
 logger = setup_logging()
 
