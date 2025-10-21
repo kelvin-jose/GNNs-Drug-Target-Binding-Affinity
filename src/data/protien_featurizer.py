@@ -1,6 +1,8 @@
+import torch
 import numpy as np
 from pathlib import Path
 from Bio.PDB import PDBParser, is_aa
+from torch_geometric.data import Data
 from utils.logger import setup_logging
 
 logger = setup_logging()
@@ -71,3 +73,52 @@ def get_ca_coord(res):
         coords = [a.get_coord() for a in res]
     centroid = np.mean(coords, axis=0) if len(coords) > 0 else np.zeros(3, dtype=np.float32)
     return np.array(centroid, dtype=np.float32)
+
+def build_residue_graph_from_pdb(pdb_path, residue_cutoff = 8.0):
+    residues = parse_pocket_residues(pdb_path)
+    if len(residues) == 0:
+        raise RuntimeError(f"No residues parsed from {pdb_path}")
+
+    node_feats = []
+    positions = []
+    res_ids = []
+    for res_uid, res in residues:
+        node_feats.append(residue_to_feature(res))
+        positions.append(get_ca_coord(res))
+        res_ids.append(res_uid)
+    x = torch.tensor(np.vstack(node_feats), dtype=torch.float32)
+    pos = torch.tensor(np.vstack(positions), dtype=torch.float32)
+
+    # compute pairwise distances and edges
+    coords = pos.numpy()
+    N = coords.shape[0]
+    edge_index = []
+    edge_attr = []
+    cutoff = float(residue_cutoff)
+    for i in range(N):
+        for j in range(i+1, N):
+            d = np.linalg.norm(coords[i] - coords[j])
+            if d <= cutoff:
+                # add both directions
+                edge_index.append([i, j])
+                edge_index.append([j, i])
+                edge_attr.append([d])
+                edge_attr.append([d])
+    if len(edge_index) == 0:
+        # no edges found (e.g., single residue) -> create self-loop to keep PyG happy
+        edge_index = [[0,0]]
+        edge_attr = [[0.0]]
+
+    edge_index = torch.tensor(edge_index, dtype=torch.long).T
+    edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
+
+    data = Data(x=x, pos=pos, edge_index=edge_index, edge_attr=edge_attr)
+    # add metadata
+    data.metadata = {
+        "complex_id": Path(pdb_path).parent.name,
+        "pdb_path": str(pdb_path),
+        "residue_ids": res_ids,
+        "node_type": "residue",
+        "residue_cutoff": residue_cutoff
+    }
+    return data
