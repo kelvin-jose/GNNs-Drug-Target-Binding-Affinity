@@ -57,3 +57,17 @@ def residue_to_feature(res):
     avg_b = np.mean(b_factors).astype(np.float32) if len(b_factors) > 0 else np.array([0.0], dtype=np.float32)
     feat = np.concatenate([onehot, seq_feat/100.0, np.array([avg_b/100.0], dtype=np.float32)])
     return feat
+
+def get_ca_coord(res):
+    for atom in res:
+        name = atom.get_name()
+        if name == "CA":
+            coord = atom.get_coord()
+            return np.array(coord, dtype=np.float32)
+    # fallback: centroid of heavy atoms
+    coords = [a.get_coord() for a in res if a.element != "H"]
+    if len(coords) == 0:
+        # last fallback: any atom
+        coords = [a.get_coord() for a in res]
+    centroid = np.mean(coords, axis=0) if len(coords) > 0 else np.zeros(3, dtype=np.float32)
+    return np.array(centroid, dtype=np.float32)
