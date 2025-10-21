@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 from Bio.PDB import PDBParser, is_aa
 from torch_geometric.data import Data
-from utils.logger import setup_logging
+from src.utils.logger import setup_logging
 
 logger = setup_logging()
 
@@ -122,3 +122,19 @@ def build_residue_graph_from_pdb(pdb_path, residue_cutoff = 8.0):
         "residue_cutoff": residue_cutoff
     }
     return data
+
+def save_graph(data, out_dir = "data/processed/protein_graphs", suffix = "residue"):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    cid = data.metadata.get("complex_id", "unknown")
+    out_path = out_dir / f"{cid}_{suffix}.pt"
+    torch.save(data, out_path)
+    logger.info(f"Cached protein graph → {out_path}")
+    return out_path
+
+def build_and_save_residue_graph(pdb_path, residue_cutoff = 8.0, out_dir = "data/processed/protein_graphs"):
+    data = build_residue_graph_from_pdb(pdb_path, residue_cutoff=residue_cutoff)
+    return save_graph(data, out_dir=out_dir, suffix="residue")
+
+# build_and_save_residue_graph("data/raw/PDBbind_v2020_refined/refined-set/1a1e/1a1e_pocket.pdb", 
+                            #  residue_cutoff=8.0)
