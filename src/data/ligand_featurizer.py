@@ -1,7 +1,10 @@
 import torch
 import numpy as np
+import pandas as pd
+from pathlib import Path
 from rdkit import Chem
-from rdkit.Chem import AllChem
+from rdkit.Chem import AllChem, SDMolSupplier
+from torch_geometric.data import Data
 from src.utils.logger import setup_logging
 
 logger = setup_logging()
@@ -96,15 +99,60 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
         except Exception:
             pass
     
-    # numpy to tensors
-    node_feats = torch.tensor(node_feats, dtype=torch.float32)
-    edge_index = torch.tensor(edge_index, dtype=torch.long)
-    edge_attr = torch.tensor(edge_attr, dtype=torch.float32)
-    pos = torch.tensor(pos, dtype=torch.float32)
+    # to pyg Data object
+    data = Data(
+        x=torch.tensor(node_feats, dtype=torch.float32),
+        edge_index=torch.tensor(edge_index, dtype=torch.long),
+        edge_attr=torch.tensor(edge_attr, dtype=torch.float32),
+        pos=torch.tensor(pos, dtype=torch.float32)
+    )
+    return data
 
-    return {
-        "x": node_feats,
-        "edge_index": edge_index,
-        "edge_attr": edge_attr,
-        "pos": pos
-    }
+def featurize_and_save_all_ligands(metadata_csv="data/processed/refined_dataset_metadata.csv",
+                                   output_dir="data/processed/ligand_graphs"):
+    df = pd.read_csv(metadata_csv)
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Processing {len(df)} ligands...")
+    skipped = 0
+
+    for _, row in df.iterrows():
+        cid = row["complex_id"]
+        ligand_path = Path(row["ligand_file"])
+        out_file = out_dir / f"{cid}.pt"
+
+        if out_file.exists():
+            continue 
+
+        if not ligand_path.exists():
+            logger.warning(f"Ligand file missing for {cid}: {ligand_path}")
+            skipped += 1
+            continue
+
+        mol = None
+        try:
+            if ligand_path.suffix.lower() == ".sdf":
+                supplier = SDMolSupplier(str(ligand_path), removeHs=False)
+                mol = supplier[0] if len(supplier) > 0 else None
+            else:
+                mol = Chem.MolFromMolFile(str(ligand_path), removeHs=False)
+        except Exception as e:
+            logger.warning(f"Failed to load {ligand_path}: {e}")
+
+        if mol is None:
+            logger.warning(f"Skipping {cid}: invalid ligand file.")
+            skipped += 1
+            continue
+
+        data = featurize_rdkit_mol(mol)
+        if data is None:
+            skipped += 1
+            continue
+
+        torch.save(data, out_file)
+
+    logger.info(f"Ligand featurization complete. Skipped: {skipped}. Output -> {out_dir}")
+
+if __name__ == "__main__":
+    featurize_and_save_all_ligands()
