@@ -34,8 +34,8 @@ def atom_to_feature_vector(atom):
     formal_charge = atom.GetFormalCharge()
     num_hs = atom.GetTotalNumHs()
     aromatic = 1 if atom.GetIsAromatic() else 0
-    hybrid = HYBRIDIZATION_MAP.get(atom.GetHybridization(), -1)
-    hybrid_oh = one_hot(hybrid, list(range(len(HYBRIDIZATION_MAP)+1)))  # include -1 as index 0?
+    hybrid = HYBRIDIZATION_MAP.get(atom.GetHybridization(), 0)
+    hybrid_oh = one_hot(hybrid, list(range(len(HYBRIDIZATION_MAP))))
     vec = atom_onehot + [degree, formal_charge, num_hs, aromatic] + hybrid_oh
     return np.array(vec, dtype=np.float32)
 
@@ -53,7 +53,7 @@ def featurize_rdkit_mol(mol, use_explicit_hs = True):
     num_atoms = mol.GetNumAtoms()
     node_feats = np.vstack([atom_to_feature_vector(a) \
                             for a in mol.GetAtoms()]) if num_atoms > 0 \
-                            else np.zeros((0, len(COMMON_ATOMS)+5+len(HYBRIDIZATION_MAP)+1), 
+                            else np.zeros((0, len(COMMON_ATOMS)+5+len(HYBRIDIZATION_MAP)), 
                             dtype=np.float32)
 
     edges = []
@@ -121,7 +121,7 @@ def featurize_and_save_all_ligands(metadata_csv="data/processed/refined_dataset_
         cid = row["complex_id"]
         ligand_path = Path(row["ligand_file"])
         out_file = out_dir / f"{cid}.pt"
-
+        
         if out_file.exists():
             continue 
 
@@ -149,9 +149,7 @@ def featurize_and_save_all_ligands(metadata_csv="data/processed/refined_dataset_
         if data is None:
             skipped += 1
             continue
-
         torch.save(data, out_file)
-
     logger.info(f"Ligand featurization complete. Skipped: {skipped}. Output -> {out_dir}")
 
 if __name__ == "__main__":
