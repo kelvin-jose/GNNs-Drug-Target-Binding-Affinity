@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import pandas as pd
 from pathlib import Path
 from Bio.PDB import PDBParser, is_aa
 from torch_geometric.data import Data
@@ -123,18 +124,39 @@ def build_residue_graph_from_pdb(pdb_path, residue_cutoff = 8.0):
     }
     return data
 
-def save_graph(data, out_dir = "data/processed/protein_graphs", suffix = "residue"):
-    out_dir = Path(out_dir)
+def featurize_all_proteins(metadata_csv="data/processed/refined_dataset_metadata.csv",
+                           output_dir="data/processed/protein_graphs", cutoff=8.0):
+    df = pd.read_csv(metadata_csv)
+    out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    cid = data.metadata.get("complex_id", "unknown")
-    out_path = out_dir / f"{cid}_{suffix}.pt"
-    torch.save(data, out_path)
-    logger.info(f"Cached protein graph → {out_path}")
-    return out_path
 
-def build_and_save_residue_graph(pdb_path, residue_cutoff = 8.0, out_dir = "data/processed/protein_graphs"):
-    data = build_residue_graph_from_pdb(pdb_path, residue_cutoff=residue_cutoff)
-    return save_graph(data, out_dir=out_dir, suffix="residue")
+    skipped = 0
+    logger.info(f"Processing {len(df)} protein pockets...")
 
-# build_and_save_residue_graph("data/raw/PDBbind_v2020_refined/refined-set/1a1e/1a1e_pocket.pdb", 
-                            #  residue_cutoff=8.0)
+    for _, row in df.iterrows():
+        cid = row["complex_id"]
+        protein_path = Path(row["protein_file"])
+        out_file = out_dir / f"{cid}.pt"
+
+        if out_file.exists():
+            continue
+
+        if not protein_path.exists():
+            logger.warning(f"Protein file missing for {cid}: {protein_path}")
+            skipped += 1
+            continue
+
+        try:
+            data = build_residue_graph_from_pdb(protein_path, cutoff)
+            if data is None:
+                skipped += 1
+                continue
+            torch.save(data, out_file)
+        except Exception as e:
+            logger.error(f"Failed to featurize {cid}: {e}")
+            skipped += 1
+
+    logger.info(f"Protein featurization done. Skipped: {skipped}. Output -> {out_dir}")
+
+if __name__ == "__main__":
+    featurize_all_proteins()
