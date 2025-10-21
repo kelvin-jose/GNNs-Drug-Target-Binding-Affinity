@@ -1,0 +1,3 @@
+from src.utils.logger import setup_logging
+
+logger = setup_logging()
