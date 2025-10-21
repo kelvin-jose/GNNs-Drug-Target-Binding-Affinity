@@ -82,7 +82,6 @@ def build_all_complex_graphs(metadata_csv="data/processed/refined_dataset_metada
         ligand_file = ligand_dir / f"{cid}.pt"
         protein_file = protein_dir / f"{cid}.pt"
         out_file = output_dir / f"{cid}.pt"
-
         if out_file.exists():
             continue
 
@@ -92,8 +91,10 @@ def build_all_complex_graphs(metadata_csv="data/processed/refined_dataset_metada
             continue
 
         try:
-            ligand_data = torch.load(ligand_file)
-            protein_data = torch.load(protein_file)
+            with torch.serialization.safe_globals([Data]):
+                ligand_data = torch.load(ligand_file, weights_only=False)
+                protein_data = torch.load(protein_file, weights_only=False)
+            
             complex_data = combine_graphs(
                 ligand_data, protein_data, affinity, cutoff=contact_cutoff
             )
@@ -103,3 +104,6 @@ def build_all_complex_graphs(metadata_csv="data/processed/refined_dataset_metada
             skipped += 1
 
     logger.info(f"Complex graph building complete. Skipped: {skipped}. Output → {output_dir}")
+
+if __name__ == "__main__":
+    build_all_complex_graphs()
