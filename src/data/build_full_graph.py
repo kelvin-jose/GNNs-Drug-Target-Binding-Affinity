@@ -1,10 +1,28 @@
 import torch
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from torch_geometric.data import Data
 from src.utils.logger import setup_logging
 
 logger = setup_logging()
+
+def build_cross_edges(ligand_pos, protein_pos, cutoff=5.0):
+    cross_edges = []
+    n_lig = ligand_pos.shape[0]
+    n_pro = protein_pos.shape[0]
+
+    for i in range(n_lig):
+        for j in range(n_pro):
+            dist = np.linalg.norm(ligand_pos[i] - protein_pos[j])
+            if dist <= cutoff:
+                cross_edges.append((i, n_lig + j))  # ligand -> protein
+                cross_edges.append((n_lig + j, i))  # protein -> ligand
+    if len(cross_edges) == 0:
+        edge_index = np.zeros((2, 0), dtype=np.int64)
+    else:
+        edge_index = np.array(cross_edges, dtype=np.int64).T
+    return edge_index
 
 def combine_graphs(ligand_data, protein_data, affinity, cutoff=5.0):
     # extract and shift indices
