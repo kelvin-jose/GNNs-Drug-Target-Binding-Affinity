@@ -58,7 +58,8 @@ def combine_graphs(ligand_data, protein_data, affinity, cutoff=5.0):
         x=x,
         edge_index=all_edges,
         pos=pos,
-        y=torch.tensor([affinity], dtype=torch.float32)
+        y=torch.tensor([affinity], dtype=torch.float32),
+        node_type=torch.cat([torch.zeros(num_lig_nodes, dtype=torch.long), torch.ones(num_pro_nodes, dtype=torch.long)])
     )
     return data
 
