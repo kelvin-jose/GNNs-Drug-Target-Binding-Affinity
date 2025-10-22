@@ -2,23 +2,25 @@ import torch
 import pandas as pd
 from rdkit import Chem
 from pathlib import Path
-from rdkit.Chem import SDMolSupplier
 from torch_geometric.data import InMemoryDataset, Data
 
 from src.utils.logger import setup_logging
-from src.data.featurizer import featurize_rdkit_mol
 
 logger = setup_logging()
 
-class PDBBindLigandDataset(InMemoryDataset):
-    def __init__(self, metadata_csv="data/processed/refined_dataset_metadata.csv", 
-                 root="data/processed/graphs", transform=None, 
-                 pre_transform=None, force_rebuild=False):
+class PDBDataset(InMemoryDataset):
+    def __init__(self, metadata_csv = "data/processed/refined_dataset_metadata.csv",
+        complex_dir = "data/processed/complex_graphs",
+        root = "data/processed/full_dataset",
+        transform=None,
+        pre_transform=None,
+        force_rebuild=False):
         self.metadata_csv = Path(metadata_csv)
+        self.complex_dir = Path(complex_dir)
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
-        self.cache_file = self.root / "dataset.pt"
         self.force_rebuild = force_rebuild
+        self.cache_file = self.root / f"full_dataset.pt"
         super().__init__(self.root, transform, pre_transform)
 
         if self.cache_file.exists() and not self.force_rebuild:
