@@ -46,46 +46,32 @@ class PDBDataset(InMemoryDataset):
         skipped = 0
         for _, row in df.iterrows():
             cid = row["complex_id"]
-            ligand_path = Path(row["ligand_file"])
+            graph_file = self.complex_dir / f"{cid}.pt"
             affinity = float(row["affinity"])
-            if not ligand_path.exists():
-                logger.warning(f"Ligand file missing for {cid}: {ligand_path}")
+
+            if not graph_file.exists():
+                logger.warning(f"Complex graph missing for {cid}")
                 skipped += 1
                 continue
 
-            # read as RDKit Mol (sdf or mol2 may be present—try sdf first)
-            mol = None
             try:
-                if ligand_path.suffix.lower() == ".sdf":
-                    supplier = SDMolSupplier(str(ligand_path), removeHs=False)
-                    mol = supplier[0]
-                else:
-                    mol = Chem.MolFromMolFile(str(ligand_path), removeHs=False)
+                with torch.serialization.safe_globals([Data]):
+                    graph_data = torch.load(graph_file, weights_only=False)
+                graph_data.y = torch.tensor([affinity], dtype=torch.float32)
+                graph_data.complex_id = cid
+                data_list.append(graph_data)
             except Exception as e:
-                logger.warning(f"RDKit read failed for {cid}: {e}")
-                mol = None
-
-            if mol is None:
-                logger.warning(f"Failed to parse ligand for {cid}, skipping.")
+                logger.error(f"Failed to load complex {cid}: {e}")
                 skipped += 1
                 continue
 
-            feats = featurize_rdkit_mol(mol)
-            if feats is None:
-                skipped += 1
-                continue
+            if len(data_list) % 200 == 0:
+                logger.info(f"Loaded {len(data_list)} complex graphs...")
 
-            data = Data(x = feats["x"], edge_index = feats["edge_index"],
-                edge_attr = feats["edge_attr"], pos = feats["pos"] if feats["pos"].shape[0] > 0 else None,
-                y = torch.tensor([affinity], dtype=torch.float32), complex_id = cid)
-            data_list.append(data)
+        logger.info(f"Finished. Loaded {len(data_list)} complexes. Skipped: {skipped}")
 
-            if len(data_list) % 500 == 0:
-                logger.info(f"Processed {len(data_list)} molecules...")
-
-        logger.info(f"Finished processing. Total processed: {len(data_list)}. Skipped: {skipped}")
         if len(data_list) == 0:
-            raise RuntimeError("No data processed. Check metadata and ligand files.")
+            raise RuntimeError("No valid complex graphs loaded. Check paths and files.")
 
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.cache_file)
