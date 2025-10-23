@@ -9,6 +9,7 @@ logger = setup_logging()
 
 def build_cross_edges(ligand_pos, protein_pos, cutoff=5.0):
     cross_edges = []
+    edge_attrs = []
     n_lig = ligand_pos.shape[0]
     n_pro = protein_pos.shape[0]
 
@@ -18,11 +19,16 @@ def build_cross_edges(ligand_pos, protein_pos, cutoff=5.0):
             if dist <= cutoff:
                 cross_edges.append((i, n_lig + j))  # ligand -> protein
                 cross_edges.append((n_lig + j, i))  # protein -> ligand
+                edge_attrs.append([dist])
+                edge_attrs.append([dist])
     if len(cross_edges) == 0:
         edge_index = np.zeros((2, 0), dtype=np.int64)
+        edge_attrs = np.zeros((0, 5), dtype=np.float32)
     else:
         edge_index = np.array(cross_edges, dtype=np.int64).T
-    return edge_index
+        edge_attrs = np.array(edge_attrs, dtype=np.float32)
+    
+    return edge_index, edge_attrs
 
 def combine_graphs(ligand_data, protein_data, affinity, cutoff=5.0):
     # extract and shift indices
@@ -30,7 +36,7 @@ def combine_graphs(ligand_data, protein_data, affinity, cutoff=5.0):
     num_pro_nodes = protein_data.x.size(0)
 
     # ligand–protein edges
-    cross_edge_index = build_cross_edges(
+    cross_edge_index, cross_edge_attr = build_cross_edges(
         ligand_data.pos.cpu().numpy(),
         protein_data.pos.cpu().numpy(),
         cutoff=cutoff
@@ -38,7 +44,10 @@ def combine_graphs(ligand_data, protein_data, affinity, cutoff=5.0):
 
     # merge intra-graph edges
     ligand_edge_index = ligand_data.edge_index
+    ligand_edge_attr = ligand_data.edge_attr
+
     protein_edge_index = protein_data.edge_index + num_lig_nodes  # shift protein indices
+    protein_edge_attr = protein_data.edge_attr
 
     # combine all edge indices
     all_edges = torch.cat([
@@ -54,10 +63,24 @@ def combine_graphs(ligand_data, protein_data, affinity, cutoff=5.0):
     x = torch.cat([ligand_data.x, protein_data.x], dim=0)
     pos = torch.cat([ligand_data.pos, protein_data.pos], dim=0)
 
+    max_dim = max(ligand_edge_attr.size(1), protein_edge_attr.size(1), cross_edge_attr.shape[1])
+    def pad_attr(attr, target_dim):
+        pad_size = target_dim - attr.size(1)
+        if pad_size > 0:
+            attr = torch.cat([attr, torch.zeros(attr.size(0), pad_size)], dim=1)
+        return attr
+
+    ligand_edge_attr = pad_attr(ligand_edge_attr, max_dim)
+    protein_edge_attr = pad_attr(protein_edge_attr, max_dim)
+    cross_edge_attr = pad_attr(torch.tensor(cross_edge_attr, dtype=torch.float32), max_dim)
+
+    edge_attrs = torch.cat([ligand_edge_attr, protein_edge_attr, cross_edge_attr], dim=0)
+
     data = Data(
         x=x,
         edge_index=all_edges,
         pos=pos,
+        edge_attrs=edge_attrs,
         y=torch.tensor([affinity], dtype=torch.float32),
         node_type=torch.cat([torch.zeros(num_lig_nodes, dtype=torch.long), torch.ones(num_pro_nodes, dtype=torch.long)])
     )
