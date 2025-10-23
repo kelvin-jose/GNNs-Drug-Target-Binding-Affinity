@@ -67,4 +67,11 @@ class CoreGNN(nn.Module):
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
-        
+        # ligand <-> protein)
+        for conv, norm in zip(self.cross_layers, self.cross_norms):
+            x = conv(x, cross_edge_index, cross_edge_attr)
+            x = norm(x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+       
