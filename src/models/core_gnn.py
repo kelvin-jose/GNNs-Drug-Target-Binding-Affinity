@@ -74,4 +74,9 @@ class CoreGNN(nn.Module):
             x = F.relu(x)
             x = F.dropout(x, p=self.dropout, training=self.training)
 
-       
+        # pooling
+        out = global_mean_pool(x, batch)
+        
+        # regression
+        y_hat = self.readout(out)
+        return y_hat.squeeze(1)
