@@ -47,4 +47,24 @@ class CoreGNN(nn.Module):
         self.dropout = dropout
         self.hidden_dim = hidden_dim
         
-    
+    def forward(self, data):
+        x, edge_index, edge_attr, batch, node_type = (
+            data.x, data.edge_index, data.edge_attr, data.batch, data.node_type
+        )
+        src, dst = edge_index
+        same_mask = (node_type[src] == node_type[dst])
+        cross_mask = (node_type[src] != node_type[dst])
+
+        intra_edge_index = edge_index[:, same_mask]
+        intra_edge_attr = edge_attr[same_mask]
+        cross_edge_index = edge_index[:, cross_mask]
+        cross_edge_attr = edge_attr[cross_mask]
+
+        # ligand + protein separately
+        for conv, norm in zip(self.encoder_layers, self.encoder_norms):
+            x = conv(x, intra_edge_index, intra_edge_attr)
+            x = norm(x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+
+        
