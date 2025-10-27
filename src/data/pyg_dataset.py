@@ -12,15 +12,24 @@ class PDBDataset(InMemoryDataset):
     def __init__(self, metadata_csv = "data/processed/refined_dataset_metadata.csv",
         complex_dir = "data/processed/complex_graphs",
         root = "data/processed/full_dataset",
+        split_dir="data/processed/splits",
         transform=None,
         pre_transform=None,
-        force_rebuild=False):
+        force_rebuild=False,
+        split=None):
+
         self.metadata_csv = Path(metadata_csv)
         self.complex_dir = Path(complex_dir)
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.force_rebuild = force_rebuild
-        self.cache_file = self.root / f"full_dataset.pt"
+        self.split = split
+        self.split_dir = Path(split_dir)
+
+        split_suffix = f"_{split}" if split else ""
+        self.cache_file = self.root / f"complex_dataset{split_suffix}.pt"
+        
+    
         super().__init__(self.root, transform, pre_transform)
 
         if self.cache_file.exists() and not self.force_rebuild:
@@ -42,6 +51,16 @@ class PDBDataset(InMemoryDataset):
     
     def process(self):
         df = pd.read_csv(self.metadata_csv)
+
+        if self.split:
+            split_file = self.split_dir / f"{self.split}_ids.txt"
+            if split_file.exists():
+                split_ids = set(open(split_file).read().splitlines())
+                df = df[df["complex_id"].astype(str).isin(split_ids)]
+                logger.info(f"Using {len(df)} complexes from split {self.split}")
+            else:
+                logger.warning(f"Split file not found: {split_file}, continuing with full dataset")
+        
         data_list = []
         skipped = 0
         for _, row in df.iterrows():
