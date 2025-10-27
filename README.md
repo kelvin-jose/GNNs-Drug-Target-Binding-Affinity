@@ -1,29 +1,71 @@
 # GNNs-Drug-Target-Binding-Affinity
 
 ### Project Goal
-Build a robust geometric GNN that predicts binding affinity from <b>protein-ligand</b> 3D complexes, and demonstrate imporved accuracy and interpretability vs classical docking and standard 2D GNN baselines. 
+Proteins are the molecular machines of life, and drugs are small molecules designed to interact with them. The strength of this interaction—how tightly a drug binds to a protein target—is known as its binding affinity. Accurately predicting binding affinity is a cornerstone of drug discovery, but experimentally measuring it is slow, expensive, and limited to a small number of compounds.
 
-### Phase 0
+The goal is to build a robust geometric GNN that predicts binding affinity from <b>protein-ligand</b> 3D complexes, and demonstrate imporved accuracy and interpretability vs classical docking and standard 2D GNN baselines. 
+
+### Key Milestones
+#### Phase 0
 - Create a repo skeleton
 - Setup environment management
 - Version control with git
 - Establish experiment tracking
 
-### Phase 1
+#### Phase 1
 - Download dataset
 - Preprocess downloaded files
 - Save output files
 
-### Phase 2
+#### Phase 2
 - Train a ligand-only GNN model
 - Evaluate the trained model
 - Save best model files 
 
-### Phase 3
+#### Phase 3
 - Featurize proteins and ligands
 - Generate complex graphs
 - More sophisticated GNN based model
 - Full train and eval pipeline
+
+### Architectire Overview
+```bash
+ ┌──────────────────────────┐
+ │      Dataset Builder     │
+ │  - Parse INDEX_refined   │
+ │  - Map ligand/protein    │
+ └────────────┬─────────────┘
+              │
+              ▼
+ ┌──────────────────────────┐
+ │     Featurizers          │
+ │  Ligand -> atom graph     │
+ │  Protein -> residue graph │
+ └────────────┬─────────────┘
+              │
+              ▼
+ ┌──────────────────────────┐
+ │ Complex Graph Builder    │
+ │  - Merge ligand+protein  │
+ │  - Add inter-edges (≤5Å) │
+ └────────────┬─────────────┘
+              │
+              ▼
+ ┌──────────────────────────┐
+ │     CoreGNN Model     │
+ │  - Dual Graph Encoders   │
+ │  - Cross-Attention Layer │
+ │  - Affinity Regression   │
+ └────────────┬─────────────┘
+              │
+              ▼
+ ┌──────────────────────────┐
+ │ Trainer + Evaluator      │
+ │  - RMSE, Pearson         │
+ │  - TensorBoard logging   │
+ └──────────────────────────┘
+
+```
 
 ### Directory Structure
 ```bash
@@ -58,9 +100,28 @@ dataset
 ├── README.md
 └── setup_logging.yaml     # logging configuration file
 ```
-#### To run locally
+### To run locally
+##### E2E pipeline
 ```bash
 python -m src.main
-
+```
+##### Logging in tensorboard
+```bash
 tensorboard --logdir experiments/runs
+```
+### Evaluation Metrics
+| Metric |  Meaning  |
+|:-----|:--------:|
+| `RMSE`   | Root Mean Square Error |
+| `R²`   |  Coefficient of Determination  |
+| `Pearson`   | Linear correlation between predicted and actual |
+
+### Citation
+```bash
+@software{coregnn_2025,
+  author = {Kelvin Jose},
+  title = {Residue-Level Graph Neural Network for DTBA Prediction},
+  year = {2025},
+  url = {https://github.com/kelvin-jose/GNNs-Drug-Target-Binding-Affinity}
+}
 ```
