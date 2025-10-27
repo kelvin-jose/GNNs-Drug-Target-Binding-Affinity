@@ -111,7 +111,7 @@ def train_one_epoch(model, loader, optim):
         total_graphs += batch.num_graphs
     return total_loss / (total_graphs + 1e-12)
 
-def main(
+def train(
     metadata_csv="data/processed/refined_dataset_metadata.csv",
     complex_dir="data/processed/complex_graphs",
     split_dir="data/processed/splits",
@@ -223,4 +223,4 @@ def main(
     writer.close()
     logger.info("Training done")
 
-main(epochs=1, batch_size=4, lr=1e-4, hidden_dim=128, encoder_layers=3, patience=10)
+# train(epochs=1, batch_size=4, lr=1e-4, hidden_dim=128, encoder_layers=3, patience=10)
