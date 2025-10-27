@@ -82,3 +82,21 @@ def evaluate(model, loader):
         "pearson": pearson_r(ys, preds)
     }
     return metrics
+
+def train_one_epoch(model, loader, optim):
+    model.train()
+    total_loss = 0.0
+    total_graphs = 0
+    
+    for batch in loader:
+        optim.zero_grad()
+        out = model(batch)
+        target = batch.y.view(-1).to(out.dtype)
+        loss = torch.nn.functional.mse_loss(out, target)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+        optim.step()
+
+        total_loss += loss.item() * batch.num_graphs
+        total_graphs += batch.num_graphs
+    return total_loss / (total_graphs + 1e-12)
