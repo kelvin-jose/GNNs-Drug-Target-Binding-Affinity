@@ -2,7 +2,7 @@ import tarfile
 import urllib.request
 from tqdm import tqdm
 from pathlib import Path
-from utils.logger import setup_logging
+from src.utils.logger import setup_logging
 
 logger = setup_logging()
 
