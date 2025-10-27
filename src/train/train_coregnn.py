@@ -3,6 +3,7 @@ import random
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from sklearn.metrics import r2_score
 from src.utils.logger import setup_logging
 
 logger = setup_logging()
@@ -60,3 +61,24 @@ def ensure_splits(metadata_csv="data/processed/refined_dataset_metadata.csv",
 
     logger.info(f"new splits: train->{len(train_ids)}, val->{len(val_ids)}, test->{len(test_ids)}")
     return str(train_file), str(val_file), str(test_file)
+
+def evaluate(model, loader):
+    model.eval()
+    ys, preds = [], []
+    with torch.no_grad():
+        for batch in loader:
+            out = model(batch)
+            out = out.numpy().reshape(-1)
+            y = batch.y.numpy().reshape(-1)
+            preds.append(out)
+            ys.append(y)
+    if len(preds) == 0:
+        return {}
+    preds = np.concatenate(preds)
+    ys = np.concatenate(ys)
+    metrics = {
+        "rmse": rmse(ys, preds),
+        "r2": float(r2_score(ys, preds)) if len(ys) > 1 else 0.0,
+        "pearson": pearson_r(ys, preds)
+    }
+    return metrics
