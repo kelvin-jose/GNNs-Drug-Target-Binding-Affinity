@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from torch.optim import AdamW
-from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import r2_score
@@ -207,8 +207,9 @@ def main(
     ckpt_path = Path(output_dir) / "best_model.pt"
     if ckpt_path.exists():
         logger.info("Loading model for eval...")
-        ckpt = torch.load(ckpt_path)
-        model.load_state_dict(ckpt["model_state"])
+        with torch.serialization.safe_globals([]):
+            ckpt = torch.load(ckpt_path)
+            model.load_state_dict(ckpt["model_state"])
 
     final_test_metrics = evaluate(model, test_loader)
     logger.info(f"Test metrics: RMSE->{final_test_metrics.get('rmse',np.nan):.4f}, r2->{final_test_metrics.get('r2',np.nan):.4f}, Pearson->{final_test_metrics.get('pearson',np.nan):.4f}")
@@ -221,3 +222,5 @@ def main(
 
     writer.close()
     logger.info("Training done")
+
+main(epochs=1, batch_size=4, lr=1e-4, hidden_dim=128, encoder_layers=3, patience=10)
