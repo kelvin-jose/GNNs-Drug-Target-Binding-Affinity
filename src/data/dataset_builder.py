@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-from utils.logger import setup_logging
+from src.utils.logger import setup_logging
 
 logger = setup_logging()
 
